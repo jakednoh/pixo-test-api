@@ -1,28 +1,31 @@
-import { Template, TemplateDocument } from '@models/Template';
+import { TemplateModel, Template } from '@models/TemplateModel';
 import repositoryFactory from '../repositories/base-repository';
 
-const templateRepository = repositoryFactory(Template);
+const templateRepository = repositoryFactory(TemplateModel);
 
-export type TemplateService = {
-  listTemplates: () => Promise<TemplateDocument[]>;
-  createTemplate: (template: Omit<TemplateDocument, '_id'>) => Promise<any>;
-  deleteTemplate: (id: string) => Promise<void>;
-};
+const listTemplates = async (filter: any, limit: number, offset: number) =>
+  templateRepository.list(filter, limit, offset);
 
-const listTemplates = async () => templateRepository.list();
+const getTemplate = async (id: string) => templateRepository.getById(id);
 
-const createTemplate = async (template: Omit<TemplateDocument, '_id'>) => {
+const createTemplate = async (template: Omit<Template, '_id'>) => {
   return await templateRepository.create(template);
 };
 
 const deleteTemplate = async (id: string) => {
-  await templateRepository.delete(id);
+  return await templateRepository.delete(id);
 };
 
-const service: TemplateService = {
+const updateTemplate = async (id: string, template: Template) => {
+  return await templateRepository.update(id, template);
+};
+
+const service = {
   listTemplates: listTemplates,
+  getTemplate: getTemplate,
   createTemplate: createTemplate,
   deleteTemplate: deleteTemplate,
+  updateTemplate: updateTemplate,
 };
 
 export default service;

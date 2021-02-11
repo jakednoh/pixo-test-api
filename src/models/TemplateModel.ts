@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export type TemplateDocument = {
+export type Template = {
   _id: string;
   category: string;
   name: string;
@@ -9,12 +9,12 @@ export type TemplateDocument = {
   visible: boolean;
 };
 
-const templateSchema = new mongoose.Schema<mongoose.Document & TemplateDocument>({
+const templateSchema: Schema = new Schema({
+  name: { type: String, required: true },
   category: { type: mongoose.Types.ObjectId, ref: 'Category', default: null },
-  name: { type: String },
   thumbnailUrl: { type: String },
   assetUrl: { type: String },
   visible: { type: Boolean, default: false },
 });
 
-export const Template = mongoose.model<mongoose.Document & TemplateDocument>('Template', templateSchema);
+export const TemplateModel = mongoose.model<Document & Template>('Template', templateSchema);

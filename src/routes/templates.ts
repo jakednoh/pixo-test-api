@@ -3,6 +3,7 @@ import { Request, Response, Router } from 'express';
 import { asyncWrapper } from '@utils/helper';
 import templateService from '../services/template-service';
 import { body, validationResult } from 'express-validator';
+import logger from '@utils/logger';
 
 const router = Router();
 const { CREATED, OK, NO_CONTENT, BAD_REQUEST } = StatusCodes;
@@ -10,16 +11,34 @@ const { CREATED, OK, NO_CONTENT, BAD_REQUEST } = StatusCodes;
 router.get(
   '/',
   asyncWrapper(async (req: Request, res: Response) => {
-    const templates = await templateService.listTemplates();
+    const { name, limit = 100, offset = 0 } = req.query;
+    const filter: any = {};
+    if (name) {
+      filter.name = name;
+    }
+    const templates = await templateService.listTemplates(
+      filter,
+      parseInt(limit.toString()),
+      parseInt(offset.toString())
+    );
     return res.status(OK).json(templates);
+  })
+);
+
+router.get(
+  '/:id',
+  asyncWrapper(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await templateService.getTemplate(id);
+    return res.status(OK).json(result);
   })
 );
 
 router.post(
   '/',
   body('name', 'Name cannot be empty').not().isEmpty(),
-  body('assetUrl', 'assetUrl is not valid').isURL(),
-  body('thumbnailUrl', 'thumbnailUrl is not valid').isURL(),
+  body('assetUrl', 'assetUrl is not valid').optional().isURL(),
+  body('thumbnailUrl', 'thumbnailUrl is not valid').optional().isURL(),
   asyncWrapper(async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -31,10 +50,31 @@ router.post(
   })
 );
 
+router.put(
+  '/:id',
+  body('name', 'Name cannot be empty').optional().not().isEmpty(),
+  body('assetUrl', 'assetUrl is not valid').optional().isURL(),
+  body('thumbnailUrl', 'thumbnailUrl is not valid').optional().isURL(),
+  asyncWrapper(async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(BAD_REQUEST).json({ errors: errors.array() });
+    }
+    const template = req.body;
+    delete template._id;
+    const { id } = req.params;
+    const updatedTemplate = await templateService.updateTemplate(id, template);
+    return res.status(OK).json(updatedTemplate);
+  })
+);
+
 router.delete('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   await templateService.deleteTemplate(id);
   return res.status(NO_CONTENT).end();
 });
+
+// TODO: Implement GET-/:id/thumbnail
+// TODO: Implement GET-/:id/asset
 
 export default router;

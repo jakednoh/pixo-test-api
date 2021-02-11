@@ -1,30 +1,43 @@
 import { Document, Model } from 'mongoose';
-import logger from '@utils/logger';
 import { BadRequestError } from '@utils/errors';
 
 type TDoc<T> = Document & T;
 
-function factory<T>(model: Model<TDoc<T>>) {
+export type BaseRepository<T> = {
+  list: (filter: any, limit: number, offset: number) => Promise<T[]>;
+  getById: (id: string) => Promise<T | null>;
+  create: (doc: Omit<T, '_id'>) => Promise<T>;
+  update: (id: string, doc: T) => Promise<T>;
+  delete: (id: string) => Promise<void>;
+};
+
+const docToObject = <D extends Document<any>>(doc: D) =>
+  doc.toObject({ versionKey: false }) as D extends Document<infer Model> ? Model & { _id: string } : never;
+
+function factory<T>(model: Model<TDoc<T>>): BaseRepository<T> {
   return {
-    // TODO: add filter and pagination
-    list: async (filter?: any) => (await model.find({})).map(elem => elem.toObject({ versionKey: false })) || [],
-    create: async (doc: any) => {
+    list: async (filter, limit = 100, offset = 0) =>
+      (await model.find(filter).limit(limit).skip(offset)).map(elem => docToObject(elem)) || [],
+    create: async doc => {
       const saved = await model.create(doc);
-      return saved.toObject({ versionKey: false });
+      return docToObject(saved);
     },
-    getById: async (id: string) => {
+    getById: async id => {
       const result = await model.findById(id);
-      return (result as TDoc<T>).toObject({ versionKey: false }) || null;
+      return result ? docToObject(result) : null;
     },
     update: async (id: string, doc: T) => {
-      const saved = await model.findByIdAndUpdate(id, doc);
-      if (!saved) {
+      const result = await model.findByIdAndUpdate(id, doc, { new: true });
+      if (!result) {
         throw new BadRequestError(`Could not find any item with identifier: ${id}`);
       }
-      return saved.toObject({ versionKey: false });
+      return docToObject(result);
     },
     delete: async (id: string) => {
-      await model.findByIdAndDelete(id);
+      const result = await model.findByIdAndDelete(id);
+      if (!result) {
+        throw new BadRequestError(`Could not find any item with identifier: ${id}`);
+      }
     },
   };
 }
