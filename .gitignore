@@ -1,0 +1,23 @@
+# IDE Directories
+.vscode
+.idea
+
+# package directories
+node_modules
+
+# build
+dist
+
+# OS
+.DS_Store
+
+# env 
+.*.env
+
+# logs
+*.log
+logs
+
+# etc
+tmp
+

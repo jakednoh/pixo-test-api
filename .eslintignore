@@ -1,0 +1,6 @@
+# build script
+build.ts
+
+# package directories
+node_modules
+
