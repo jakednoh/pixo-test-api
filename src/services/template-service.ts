@@ -1,4 +1,4 @@
-import { TemplateModel, Template } from '@models/TemplateModel';
+import { Template, TemplateModel } from '@models/Template';
 import repositoryFactory from '../repositories/base-repository';
 
 const templateRepository = repositoryFactory(TemplateModel);
@@ -6,19 +6,13 @@ const templateRepository = repositoryFactory(TemplateModel);
 const listTemplates = async (filter: any, limit: number, offset: number) =>
   templateRepository.list(filter, limit, offset);
 
-const getTemplate = async (id: string) => templateRepository.getById(id);
+const getTemplate = async (id: string) => templateRepository.getById(id, { populate: 'category' });
 
-const createTemplate = async (template: Omit<Template, '_id'>) => {
-  return await templateRepository.create(template);
-};
+const createTemplate = async (template: Omit<Template, '_id'>) => templateRepository.create(template);
 
-const deleteTemplate = async (id: string) => {
-  return await templateRepository.delete(id);
-};
+const deleteTemplate = async (id: string) => templateRepository.delete(id);
 
-const updateTemplate = async (id: string, template: Template) => {
-  return await templateRepository.update(id, template);
-};
+const updateTemplate = async (id: string, template: Template) => templateRepository.update(id, template);
 
 const service = {
   listTemplates: listTemplates,

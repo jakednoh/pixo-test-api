@@ -5,7 +5,7 @@ type TDoc<T> = Document & T;
 
 export type BaseRepository<T> = {
   list: (filter: any, limit: number, offset: number) => Promise<T[]>;
-  getById: (id: string) => Promise<T | null>;
+  getById: (id: string, option?: any) => Promise<T | null>;
   create: (doc: Omit<T, '_id'>) => Promise<T>;
   update: (id: string, doc: T) => Promise<T>;
   delete: (id: string) => Promise<void>;
@@ -22,21 +22,31 @@ function factory<T>(model: Model<TDoc<T>>): BaseRepository<T> {
       const saved = await model.create(doc);
       return docToObject(saved);
     },
-    getById: async id => {
-      const result = await model.findById(id);
-      return result ? docToObject(result) : null;
+    getById: async (id, option) => {
+      let result;
+
+      if (option?.populate) {
+        result = await model.findById(id).populate(option.populate);
+      } else {
+        result = await model.findById(id);
+      }
+
+      if (!result) {
+        throw new BadRequestError(`Could not find any item with id: ${id}`);
+      }
+      return docToObject(result);
     },
     update: async (id: string, doc: T) => {
       const result = await model.findByIdAndUpdate(id, doc, { new: true });
       if (!result) {
-        throw new BadRequestError(`Could not find any item with identifier: ${id}`);
+        throw new BadRequestError(`Could not find any item with id: ${id}`);
       }
       return docToObject(result);
     },
     delete: async (id: string) => {
       const result = await model.findByIdAndDelete(id);
       if (!result) {
-        throw new BadRequestError(`Could not find any item with identifier: ${id}`);
+        throw new BadRequestError(`Could not find any item with id: ${id}`);
       }
     },
   };

@@ -1,9 +1,10 @@
 import StatusCodes from 'http-status-codes';
 import { Request, Response, Router } from 'express';
-import { asyncWrapper } from '@utils/helper';
+import { asyncWrapper, isValidObjectId } from '@utils/helper';
 import templateService from '../services/template-service';
 import { body, validationResult } from 'express-validator';
-import logger from '@utils/logger';
+import { BadRequestError, InternalServerError } from '@utils/errors';
+import fetch from 'node-fetch';
 
 const router = Router();
 const { CREATED, OK, NO_CONTENT, BAD_REQUEST } = StatusCodes;
@@ -15,6 +16,7 @@ router.get(
     const filter: any = {};
     if (name) {
       filter.name = name;
+      filter.visible = true;
     }
     const templates = await templateService.listTemplates(
       filter,
@@ -45,6 +47,9 @@ router.post(
       return res.status(BAD_REQUEST).json({ errors: errors.array() });
     }
     const template = req.body;
+    if (template._id && !isValidObjectId(template._id)) {
+      delete template._id;
+    }
     const createdTemplate = await templateService.createTemplate(template);
     return res.status(CREATED).json(createdTemplate);
   })
@@ -74,7 +79,30 @@ router.delete('/:id', async (req: Request, res: Response) => {
   return res.status(NO_CONTENT).end();
 });
 
-// TODO: Implement GET-/:id/thumbnail
-// TODO: Implement GET-/:id/asset
+router.get('/:id/thumbnail', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await templateService.getTemplate(id);
+  if (!result?.thumbnailUrl) {
+    throw new BadRequestError(`thumbnailUrl does not exist in the template: ${id}`);
+  }
+  const response = await fetch(result.thumbnailUrl);
+  if (response.status !== 200) {
+    throw new InternalServerError('Thumbnail is not downloadable');
+  }
+  response.body.pipe(res);
+});
+
+router.get('/:id/asset', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await templateService.getTemplate(id);
+  if (!result?.assetUrl) {
+    throw new BadRequestError(`assetUrl does not exist in the template: ${id}`);
+  }
+  const response = await fetch(result.assetUrl);
+  if (response.status !== 200) {
+    throw new InternalServerError('Asset is not downloadable');
+  }
+  response.body.pipe(res);
+});
 
 export default router;
